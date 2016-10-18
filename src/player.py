@@ -15,12 +15,18 @@ logger = setup_logger()
 
 class MixPlaybackThread(Thread):
     mix = []
+    album_last = None
 
     def __init__(self, filecollections):
         Thread.__init__(self)
         self.daemon = True
+        self.event_quit = Event()
         self.event_mouse = Event()
         self.filecollections = filecollections
+
+    def shutdown(self):
+        self.event_quit.set()
+        self.kill_omxplayer()
 
     def mouse_clicked(self):
         logger.info("mouse was clicked")
@@ -32,10 +38,13 @@ class MixPlaybackThread(Thread):
         self.mix = self.filecollections[:]
         shuffle(self.mix)
         logger.info("shuffled new mix: %s", self.mix)
+        if self.mix[0] == self.album_last and len(self.mix) > 1:
+            self.mix.pop(0)
+            logger.info("- removed first album of new mix, because its just been played")
 
     def run(self):
         logger.info("Starting album playback...")
-        while True:
+        while not self.event_quit.is_set():
             # Perhaps re-shuffle albums
             if not self.mix:
                 self.create_mix()
@@ -46,15 +55,18 @@ class MixPlaybackThread(Thread):
 
     def play_album(self, album):
         logger.info("playing album %s", album)
+        self.album_last = album
         for fn in album:
-            if self.event_mouse.is_set():
+            if self.event_mouse.is_set() or self.event_quit.is_set():
+                self.event_mouse.clear()
                 return
             self.play_file(fn)
 
     def play_file(self, fn):
         logger.info("play_file: %s" % fn)
-        # OMXPLAYER_SP_CMD = "omxplayer %s" % fn
-        OMXPLAYER_SP_CMD = ["sleep", "2"]
+        OMXPLAYER_SP_CMD = ['omxplayer', '-o', 'both', fn]
+        logger.debug(OMXPLAYER_SP_CMD)
+        # OMXPLAYER_SP_CMD = ["sleep", "2"]
         self.omx_process = subprocess.Popen(OMXPLAYER_SP_CMD, preexec_fn=os.setsid)
         logger.info('omxplayer PID is ' + str(self.omx_process.pid))
         logger.info("waiting for end of omxplayer...")
@@ -121,11 +133,18 @@ class MediaPlayer(object):
         self.player_thread.start()
 
         self.mouse_thread = MouseClickThread(self.player_thread.mouse_clicked)
-        # self.mouse_thread.start()
+        self.mouse_thread.start()
 
         logger.info("threads started. waiting for quit signal...")
         # signal.signal(signal.SIGINT, self.shutdown)
         # print 'Press Ctrl+C'
-        while True:
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.player_thread.shutdown()
             time.sleep(1)
+
         logger.info("bye")

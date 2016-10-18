@@ -51,7 +51,7 @@ def upload():
     # run("sudo chown usblooper:usblooper %s -R" % DIR_REMOTE)
 
     # # Upload source
-    put("src/*", DIR_REMOTE, mirror_local_mode=True)
+    put("src/*.py", DIR_REMOTE, mirror_local_mode=True)
 
 
 @task
