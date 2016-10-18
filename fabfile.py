@@ -11,12 +11,11 @@ os.chdir(os.path.join(DIR_SCRIPT))
 
 # LOGFILE = "/var/log/mirapi/mirapi.log"
 DIR_REMOTE = "/server/mouseplayer"
-SERVICE_NAME = "mirapi"
 
 env.use_ssh_config = True
 if not env.hosts:
     # Set default host to something
-    env.hosts = ["mirapi"]
+    env.hosts = ["mouseplayer"]
 
 
 @task
@@ -37,11 +36,11 @@ def reboot():
     run("sudo reboot")
 
 
-@task
-def restart():
-    """ Restart the software service on the pi """
-    run("sudo systemctl restart %s" % SERVICE_NAME)
-
+# @task
+# def restart():
+#     """ Restart the software service on the pi """
+#     run("sudo systemctl restart %s" % SERVICE_NAME)
+#
 
 @task
 @parallel

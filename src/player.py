@@ -93,11 +93,16 @@ class MediaPlayer(object):
     player_thread = None
 
     def __init__(self, basepath):
-        self.filecollections = self._find_files(basepath)
         self.mix = []
         self.current_album = 0
         self.event_mouse = Event()
         self.event_quit = Event()
+
+        self.filecollections = self._find_files(basepath)
+        if not self.filecollections:
+            e = "Could not find files in %s" % basepath
+            logger.error(e)
+            raise Exception(e)
 
     def _find_files(self, basepath):
         path = os.path.abspath(basepath)
