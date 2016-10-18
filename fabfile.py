@@ -3,10 +3,11 @@ from fabric.api import local, run, env, task
 from fabric.context_managers import cd, lcd
 from fabric.operations import put, get
 from fabric.decorators import parallel
+from fabric.contrib.project import upload_project
 
 # Change to fabfile directory, to make relative paths work
 DIR_SCRIPT = os.path.dirname(os.path.realpath(__file__))
-os.chdir(os.path.join(DIR_SCRIPT, ".."))
+os.chdir(os.path.join(DIR_SCRIPT))
 
 # LOGFILE = "/var/log/mirapi/mirapi.log"
 DIR_REMOTE = "/server/mouseplayer"
@@ -47,13 +48,10 @@ def restart():
 def upload():
     """ Upload sources to a Raspberry """
 
-    run("sudo rsync -avzh src %s" % DIR_REMOTE)
-    # run("sudo rm -rf %s" % DIR_REMOTE)
-    # run("sudo mkdir -p %s" % DIR_REMOTE)
-    run("sudo chown usblooper:usblooper %s -R" % DIR_REMOTE)
+    # run("sudo chown usblooper:usblooper %s -R" % DIR_REMOTE)
 
     # # Upload source
-    # put("src/*", DIR_REMOTE, mirror_local_mode=True)
+    put("src/*", DIR_REMOTE, mirror_local_mode=True)
 
 
 @task
