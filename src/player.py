@@ -2,24 +2,92 @@
 MediaPlayer plays the music files with omxplayer, and reacts to mouse-inputs
 """
 import os
+import time
 import subprocess
+import signal
 from random import shuffle
+from threading import Thread, Event
 
+from mouseinput import wait_mouse_click, MouseClickThread
 from logutils import setup_logger
 
 logger = setup_logger()
 
+class MixPlaybackThread(Thread):
+    mix = []
 
-# class PlayerThread()
+    def __init__(self, filecollections):
+        Thread.__init__(self)
+        self.daemon = True
+        self.event_mouse = Event()
+        self.filecollections = filecollections
+
+    def mouse_clicked(self):
+        logger.info("mouse was clicked")
+        self.event_mouse.set()
+        self.kill_omxplayer()
+
+    def create_mix(self):
+        # Shuffle Albums
+        self.mix = self.filecollections[:]
+        shuffle(self.mix)
+        logger.info("shuffled new mix: %s", self.mix)
+
+    def run(self):
+        logger.info("Starting album playback...")
+        while True:
+            # Perhaps re-shuffle albums
+            if not self.mix:
+                self.create_mix()
+
+            # Now play the next album
+            album = self.mix.pop(0)
+            self.play_album(album)
+
+    def play_album(self, album):
+        logger.info("playing album %s", album)
+        for fn in album:
+            if self.event_mouse.is_set():
+                return
+            self.play_file(fn)
+
+    def play_file(self, fn):
+        logger.info("play_file: %s" % fn)
+        # OMXPLAYER_SP_CMD = "omxplayer %s" % fn
+        OMXPLAYER_SP_CMD = ["sleep", "2"]
+        self.omx_process = subprocess.Popen(OMXPLAYER_SP_CMD, preexec_fn=os.setsid)
+        logger.info('omxplayer PID is ' + str(self.omx_process.pid))
+        logger.info("waiting for end of omxplayer...")
+        self.omx_process.wait()
+        logger.info("omxplayer finished")
+
+    def kill_omxplayer(self):
+        if self.omx_process and not self.omx_process.poll():
+            # omxplayer is running... kill now by sending SIGTERM
+            # to all children of the process groups
+            logger.info("killing omxplayer with PID %s", str(self.omx_process.pid))
+            try:
+                os.killpg(os.getpgid(self.omx_process.pid), signal.SIGTERM)
+            except Exception as e:
+                logger.warn("could not kill omxplayer: %s", str(e))
+
+
 class MediaPlayer(object):
     # filecollections is a list which contains lists of files to play.
     filecollections = []
-    mix = []
+    event_mouse = None
+    event_quit = None
+    mouse_thread = None
+    player_thread = None
 
     def __init__(self, basepath):
-        self.filecollections = self.find_files(basepath)
+        self.filecollections = self._find_files(basepath)
+        self.mix = []
+        self.current_album = 0
+        self.event_mouse = Event()
+        self.event_quit = Event()
 
-    def find_files(self, basepath):
+    def _find_files(self, basepath):
         path = os.path.abspath(basepath)
 
         # Get all top-level directories
@@ -47,38 +115,17 @@ class MediaPlayer(object):
         # Done
         return filecollections
 
-    def start(self):
+    def start_playback(self):
         # Now play the files of each child-list, and on mouse-click jump to random other child-list
-        logger.info("START")
+        self.player_thread = MixPlaybackThread(self.filecollections)
+        self.player_thread.start()
+
+        self.mouse_thread = MouseClickThread(self.player_thread.mouse_clicked)
+        # self.mouse_thread.start()
+
+        logger.info("threads started. waiting for quit signal...")
+        # signal.signal(signal.SIGINT, self.shutdown)
+        # print 'Press Ctrl+C'
         while True:
-            self.shuffle()
-
-    def shuffle(self):
-        # Shuffle Albums
-        self.mix = self.filecollections[:]
-        shuffle(self.mix)
-        logger.info("shuffled new mix: %s", self.mix)
-
-    def play_album(self, i):
-        album = self.mix[i % len(self.mix)]
-        for fn in album:
-            self.play_file(fn)
-
-    def play_file(self, fn):
-        logger.info("play_file: %s" % fn)
-        OMXPLAYER_SP_CMD = "omxplayer %s" % fn
-        self.omx_process = subprocess.Popen(OMXPLAYER_SP_CMD, preexec_fn=os.setsid)
-        logger.info('omxplayer PID is ' + str(self.omx_process.pid))
-        logger.info("waiting for end of omxplayer...")
-        self.omx_process.wait()
-        logger.info("omxplayer finished")
-
-    def kill_omxplayer(self):
-        if self.omx_process and not self.omx_process.poll():
-            # omxplayer is running... kill now by sending SIGTERM
-            # to all children of the process groups
-            logger.info("killing omxplayer with PID %s", str(self.omx_process.pid))
-            try:
-                os.killpg(os.getpgid(self.omx_process.pid), signal.SIGTERM)
-            except Exception as e:
-                logger.warn("could not kill omxplayer: %s", str(e))
+            time.sleep(1)
+        logger.info("bye")

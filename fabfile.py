@@ -16,7 +16,7 @@ SERVICE_NAME = "mirapi"
 env.use_ssh_config = True
 if not env.hosts:
     # Set default host to something
-    env.hosts = ["usblooper@mirapi.local"]
+    env.hosts = ["mirapi"]
 
 
 @task
@@ -58,7 +58,7 @@ def upload():
 @parallel
 def uploadx():
     """ Upload sources to a Raspberry """
-    put("src/gpiothread.py", DIR_REMOTE, mirror_local_mode=True)
+    put("src/mouseinput.py", DIR_REMOTE, mirror_local_mode=True)
 
 
 # @task

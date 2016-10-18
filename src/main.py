@@ -26,7 +26,7 @@ logger = setup_logger()
 
 def main(basedir):
     player = MediaPlayer(basedir)
-    player.start()
+    player.start_playback()
 
 
 if __name__ == "__main__":
