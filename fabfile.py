@@ -10,12 +10,12 @@ DIR_SCRIPT = os.path.dirname(os.path.realpath(__file__))
 os.chdir(os.path.join(DIR_SCRIPT))
 
 # LOGFILE = "/var/log/mirapi/mirapi.log"
-DIR_REMOTE = "/server/mouseplayer"
+DIR_REMOTE = "/opt/clicklooper"
 
 env.use_ssh_config = True
 if not env.hosts:
     # Set default host to something
-    env.hosts = ["mouseplayer"]
+    env.hosts = ["clicklooper"]
 
 
 @task
@@ -51,6 +51,7 @@ def upload():
 
     # # Upload source
     put("src/*.py", DIR_REMOTE, mirror_local_mode=True)
+    put("splash.png", DIR_REMOTE, mirror_local_mode=True)
 
 
 @task

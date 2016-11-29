@@ -91,12 +91,14 @@ class MediaPlayer(object):
     event_quit = None
     mouse_thread = None
     player_thread = None
+    basepath = None
 
     def __init__(self, basepath):
         self.mix = []
         self.current_album = 0
         self.event_mouse = Event()
         self.event_quit = Event()
+        self.basepath = basepath
 
         self.filecollections = self._find_files(basepath)
         if not self.filecollections:
@@ -117,7 +119,7 @@ class MediaPlayer(object):
 
         # Collect all interesting files
         # filetypes = [".py", ".txt", ".md"]
-        filetypes = [".mp3", ".aac", ".md"]
+        filetypes = [".mp3", ".aac"]
         filecollections = []  # this list contains lists of files for every base directory
         for dir in dirs:
             files = []
@@ -145,7 +147,10 @@ class MediaPlayer(object):
         # print 'Press Ctrl+C'
         try:
             while True:
-                time.sleep(1)
+                time.sleep(3)
+                if not os.listdir(self.basepath):
+                    logger.warn("quit playback because usb drive is not here anymore")
+                    break
         except KeyboardInterrupt:
             pass
         finally:

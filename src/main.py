@@ -9,8 +9,8 @@ Copyright (c) 2015, YOUR_NAME
 License: YOUR_LICENSE
 """
 
-__title__ = 'MousePlayer'
-__version__ = '1.0.0'
+__title__ = 'ClickLooper'
+__version__ = '1.2.0'
 __author__ = 'Chris Hager'
 __license__ = 'GPLv3'
 __copyright__ = 'Copyright 2015 Chris Hager'
@@ -28,7 +28,7 @@ def main(basedir):
     if os.getuid() != 0:
         logger.error("Needs to be run as root on a Raspberry")
         exit(1)
-        
+
     player = MediaPlayer(basedir)
     player.start_playback()
 
