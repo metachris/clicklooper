@@ -11,18 +11,29 @@ from threading import Thread, Event
 from mouseinput import wait_mouse_click, MouseClickThread
 from logutils import setup_logger
 
+from fb import FrameBuffer
+
 logger = setup_logger()
+
+DIR_SCRIPT = os.path.dirname(os.path.realpath(__file__))
+
+
+def showimage(fn):
+    os.system("killall fbi")
+    os.system("fbi -T 1 -noverbose -a %s/images/%s" % (DIR_SCRIPT, fn))
+
 
 class MixPlaybackThread(Thread):
     mix = []
     album_last = None
 
-    def __init__(self, filecollections):
+    def __init__(self, filecollections, player):
         Thread.__init__(self)
         self.daemon = True
         self.event_quit = Event()
         self.event_mouse = Event()
         self.filecollections = filecollections
+        self.player = player
 
     def shutdown(self):
         self.event_quit.set()
@@ -64,6 +75,8 @@ class MixPlaybackThread(Thread):
 
     def play_file(self, fn):
         logger.info("play_file: %s" % fn)
+        self.player.show_text(fn)
+
         OMXPLAYER_SP_CMD = ['omxplayer', '-o', 'both', fn]
         logger.debug(OMXPLAYER_SP_CMD)
         # OMXPLAYER_SP_CMD = ["sleep", "2"]
@@ -98,17 +111,19 @@ class MediaPlayer(object):
         self.current_album = 0
         self.event_mouse = Event()
         self.event_quit = Event()
-        self.basepath = basepath
+        self.basepath = os.path.abspath(basepath)
 
-        self.filecollections = self._find_files(basepath)
+        self.fb = FrameBuffer()
+
+        self.filecollections = self._find_files(self.basepath)
         if not self.filecollections:
-            e = "Could not find files in %s" % basepath
+            e = "Could not find files in %s" % self.basepath
             logger.error(e)
+            # self.fb.show_error("No files found on USB drive")  # Cannot do this because we want to exit and restart
+            showimage("nofiles.png")
             raise Exception(e)
 
-    def _find_files(self, basepath):
-        path = os.path.abspath(basepath)
-
+    def _find_files(self, path):
         # Get all top-level directories
         dirs = []
         for _path in os.listdir(path):
@@ -136,7 +151,7 @@ class MediaPlayer(object):
 
     def start_playback(self):
         # Now play the files of each child-list, and on mouse-click jump to random other child-list
-        self.player_thread = MixPlaybackThread(self.filecollections)
+        self.player_thread = MixPlaybackThread(self.filecollections, self)
         self.player_thread.start()
 
         self.mouse_thread = MouseClickThread(self.player_thread.mouse_clicked)
@@ -158,3 +173,7 @@ class MediaPlayer(object):
             time.sleep(1)
 
         logger.info("bye")
+
+    def show_text(self, fn):
+        fn = fn[len(self.basepath)+1:]
+        self.fb.show_text(fn)

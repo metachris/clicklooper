@@ -17,59 +17,16 @@ if not env.hosts:
     # Set default host to something
     env.hosts = ["clicklooper"]
 
-
-@task
-def hd_ro():
-    """ Remount / as read-only """
-    run("sudo mount -o remount,ro /")
-
-
-@task
-def hd_rw():
-    """ Remount / as read-write """
-    run("sudo mount -o remount,rw /")
-
-
-@task
-def reboot():
-    """ Reboot the Raspberry Pi """
-    run("sudo reboot")
-
-
-# @task
-# def restart():
-#     """ Restart the software service on the pi """
-#     run("sudo systemctl restart %s" % SERVICE_NAME)
-#
-
 @task
 @parallel
 def upload():
     """ Upload sources to a Raspberry """
-
-    # run("sudo chown usblooper:usblooper %s -R" % DIR_REMOTE)
-
-    # # Upload source
     put("src/*.py", DIR_REMOTE, mirror_local_mode=True)
-    put("splash.png", DIR_REMOTE, mirror_local_mode=True)
+    put("src/images", DIR_REMOTE, mirror_local_mode=True)
 
 
 @task
 @parallel
 def uploadx():
     """ Upload sources to a Raspberry """
-    put("src/mouseinput.py", DIR_REMOTE, mirror_local_mode=True)
-
-
-# @task
-# @parallel
-# def get_logs():
-#     """ Download logs """
-#     get(LOGFILE, "logs/%s.log" % env.host_string)
-#     # print env.host_string
-
-# @task
-# @parallel
-# def clear_logs():
-#     """ Clear log file """
-#     run("rm -f %s" % LOGFILE)
+    put("src/fb.py", DIR_REMOTE, mirror_local_mode=True)
